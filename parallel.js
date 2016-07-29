@@ -5,7 +5,7 @@
 var width = document.body.clientWidth,
     height = d3.max([document.body.clientHeight-540, 240]);
 
-var m = [60, 0, 10, 0],
+var m = [40, 0, 10, 0],
     w = width - m[1] - m[3],
     h = height - m[0] - m[2],
     xscale = d3.scale.ordinal().rangePoints([0, w], 1),
@@ -19,38 +19,24 @@ var m = [60, 0, 10, 0],
     highlighted,
     dimensions,
     legend,
-    render_speed = 50,
+    render_speed = 10,
     brush_count = 0,
-    excluded_groups = [];
+    excluded_groups = [],
+    count = 0,
+    raws;
+
 
 var colors = {
-  "Baby Foods": [185,56,73],
-  "Baked Products": [37,50,75],
-  "Beef Products": [325,50,39],
-  "Beverages": [10,28,67],
-  "Breakfast Cereals": [271,39,57],
-  "Cereal Grains and Pasta": [56,58,73],
-  "Dairy and Egg Products": [28,100,52],
-  "Ethnic Foods": [41,75,61],
-  "Fast Foods": [60,86,61],
-  "Fats and Oils": [30,100,73],
-  "Finfish and Shellfish Products": [318,65,67],
-  "Fruits and Fruit Juices": [274,30,76],
-  "Lamb, Veal, and Game Products": [20,49,49],
-  "Legumes and Legume Products": [334,80,84],
-  "Meals, Entrees, and Sidedishes": [185,80,45],
-  "Nut and Seed Products": [10,30,42],
-  "Pork Products": [339,60,49],
-  "Poultry Products": [359,69,49],
-  "Restaurant Foods": [204,70,41],
-  "Sausages and Luncheon Meats": [1,100,79],
-  "Snacks": [189,57,75],
-  "Soups, Sauces, and Gravies": [110,57,70],
-  "Spices and Herbs": [214,55,79],
-  "Sweets": [339,60,75],
-  "Vegetables and Vegetable Products": [120,56,40]
+  ' |A|  < 80 Crimes per Day': [200,50, 75],
+  ' |B|  80-99 Crimes per Day': [225,50,70],
+  ' |C|  100-119 Crimes per Day': [250,50,65],
+  ' |D|  120-139 Crimes per Day': [40, 40, 60],
+  ' |E|  140-159 Crimes per Day': [40,60,40],
+  ' |F|  160-179 Crimes per Day': [325,50,50],
+  ' |G|  180-199 Crimes per Day': [350,50,45],
+  ' |H|  200-219 Crimes per Day': [375,50,35],
+  ' |I|  > 220 Crimes per Day': [400,50,30],
 };
-
 // Scale chart and canvas height
 d3.select("#chart")
     .style("height", (h + m[0] + m[2]) + "px")
@@ -84,19 +70,18 @@ var svg = d3.select("svg")
     .attr("height", h + m[0] + m[2])
   .append("svg:g")
     .attr("transform", "translate(" + m[3] + "," + m[0] + ")");
-
 // Load the data and visualization
-d3.csv("Users/Admin/Desktop/Crime%20and%20Weather%20PC/nutrients.csv", function(raw_data) {
+d3.csv("datesFinal.csv", function(raw_data) {
   // Convert quantitative scales to floats
   data = raw_data.map(function(d) {
     for (var k in d) {
-      if (!_.isNaN(raw_data[0][k] - 0) && k != 'id') {
+      if (!_.isNaN(raw_data[0][k] - 0) && k != 'record_id') {
         d[k] = parseFloat(d[k]) || 0;
       }
     };
     return d;
   });
-
+  raws = data
   // Extract the list of numerical dimensions and create a scale for each.
   xscale.domain(dimensions = d3.keys(data[0]).filter(function(k) {
     return (_.isNumber(data[0][k])) && (yscale[k] = d3.scale.linear()
@@ -274,9 +259,11 @@ function data_table(sample) {
     return a[col] < b[col] ? -1 : 1;
   });
 
+cutsies = 0;
   var table = d3.select("#food-list")
     .html("")
     .selectAll(".row")
+
       .data(sample)
     .enter().append("div")
       .on("mouseover", highlight)
@@ -285,11 +272,13 @@ function data_table(sample) {
   table
     .append("span")
       .attr("class", "color-block")
-      .style("background", function(d) { return color(d.group,0.85) })
+      .style("background", function(d) {
+
+         return color(d.group,0.85) })
 
   table
     .append("span")
-      .text(function(d) { return d.name; })
+      .text(function(d) { return d.description; })
 }
 
 // Adjusts rendering speed
@@ -389,10 +378,12 @@ function path(d, ctx, color) {
   ctx.lineTo(x0+15, y0);                               // right edge
   ctx.stroke();
 };
-
+abd = 0
 function color(d,a) {
-  var c = colors[d];
-  return ["hsla(",c[0],",",c[1],"%,",c[2],"%,",a,")"].join("");
+    abd ++
+
+    var c = colors[d];
+    return ["hsla(",c[0],",",c[1],"%,",c[2],"%,",a,")"].join("");
 }
 
 function position(d) {
@@ -445,7 +436,7 @@ function brush() {
   var selected = [];
   data
     .filter(function(d) {
-      return !_.contains(excluded_groups, d.group);
+      return !_.contains(excluded_groups, d.group, d.aggasfirearm);
     })
     .map(function(d) {
       return actives.every(function(p, dimension) {
@@ -501,6 +492,9 @@ function paths(selected, ctx, count) {
       opacity = d3.min([2/Math.pow(n,0.3),1]),
       timer = (new Date()).getTime();
 
+
+
+
   selection_stats(opacity, n, data.length)
 
   shuffled_data = _.shuffle(selected);
@@ -512,11 +506,13 @@ function paths(selected, ctx, count) {
   // render all lines until finished or a new brush event
   function animloop(){
     if (i >= n || count < brush_count) return true;
+    count ++
     var max = d3.min([i+render_speed, n]);
     render_range(shuffled_data, i, max, opacity);
     render_stats(max,n,render_speed);
     i = max;
     timer = optimize(timer);  // adjusts render_speed
+
   };
 
   d3.timer(animloop);
@@ -692,6 +688,12 @@ function exclude_data() {
   rescale();
 }
 
+function reset_data() {
+  data = raws;
+  excluded_groups = [];
+  rescale();
+}
+
 function remove_axis(d,g) {
   dimensions = _.difference(dimensions, [d]);
   xscale.domain(dimensions);
@@ -702,6 +704,7 @@ function remove_axis(d,g) {
 
 d3.select("#keep-data").on("click", keep_data);
 d3.select("#exclude-data").on("click", exclude_data);
+d3.select("#reset-data").on("click", reset_data);
 d3.select("#export-data").on("click", export_csv);
 d3.select("#search").on("keyup", brush);
 
@@ -742,5 +745,5 @@ function light_theme() {
 
 function search(selection,str) {
   pattern = new RegExp(str,"i")
-  return _(selection).filter(function(d) { return pattern.exec(d.name); });
+  return _(selection).filter(function(d) { return pattern.exec(d.description); });
 }
